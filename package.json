@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js",
-    "build": "pkg ."
+    "build": "rm -rf dist && node generate-config.js && pkg ."
   },
   "keywords": [],
   "author": "",
@@ -14,12 +14,7 @@
     "pkg": "^5.8.1"
   },
   "bin": "src/main.js",
-  "pkg": {
-    "targets": [
-      "node16-macos-x64",
-      "node16-win-x64",
-      "node16-linux-x64"
-    ],
-    "outputPath": "dist"
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.3"
   }
 }
