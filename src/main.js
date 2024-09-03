@@ -46,26 +46,18 @@ function executeQuery(query) {
 
 function checkDiskEncryption() {
   const system = os.platform();
-  let query;
   if (system === "darwin") {
-    query = "SELECT * FROM disk_encryption;";
-  } else if (system === "win32") {
-    query = "SELECT * FROM bitlocker_info;";
-  } else {
-    query = "SELECT * FROM disk_encryption;";
-  }
-
-  const result = executeQuery(query);
-
-  if (system === "darwin") {
+    const result = executeQuery("SELECT * FROM disk_encryption;");
     if (result.some(disk => parseInt(disk.encrypted) === 1)) {
       return "FileVault";
     }
   } else if (system === "win32") {
-    if (result.some(disk => parseInt(disk.encryption_status) === 1)) {
-      return "BitLocker";
-    }
+    const result = execSync(
+      `manage-bde -status | findstr "Protection Status"`
+    ).toString();
+    return result.includes("Protection On") ? "BitLocker" : null;
   } else {
+    const result = executeQuery("SELECT * FROM disk_encryption;");
     if (result.some(disk => parseInt(disk.encrypted) === 1)) {
       return "LUKS";
     }
