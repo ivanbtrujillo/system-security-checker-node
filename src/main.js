@@ -106,8 +106,13 @@ function checkScreenLock() {
     query =
       "SELECT value FROM preferences WHERE domain = 'com.apple.screensaver' AND key = 'idleTime';";
   } else if (system === "win32") {
-    query =
-      "SELECT data FROM registry WHERE path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\InactivityTimeoutSecs';";
+    const powerTimeout = execSync(
+      `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | findstr "Current AC Power Setting Index"`
+    ).toString();
+    const timeout = powerTimeout.split("\n")
+      .filter(line => line.includes("Current AC Power Setting Index"))[0]
+      .split(":")[1].trim();
+    return parseInt(timeout, 16) / 60;
   } else {
     query =
       "SELECT value FROM preferences WHERE domain = 'org.gnome.desktop.session' AND key = 'idle-delay';";
