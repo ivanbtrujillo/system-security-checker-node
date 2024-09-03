@@ -83,11 +83,10 @@ function checkAntivirus() {
       }
     }
   } else if (system === "win32") {
-    query = "SELECT * FROM windows_security_products;";
-    const result = executeQuery(query);
-    if (result.length > 0) {
-      return result[0].display_name || "Windows Antivirus";
-    }
+    const result = execSync(
+      `wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName | findstr /V /B /C:displayName`
+    ).toString();
+    return result.trim() || null;
   } else {
     query =
       "SELECT name FROM processes WHERE name LIKE '%antivirus%' OR name LIKE '%anti-virus%';";
