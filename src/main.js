@@ -1,37 +1,14 @@
-const crypto = require("crypto");
+require("dotenv").config();
+
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
+
 const {execSync} = require("child_process");
 const {createClient} = require("@supabase/supabase-js");
-const {encryptedConfig} = require("./encrypted-config");
 
-const algorithm = "aes-256-ctr";
-const secretKey = "vOVH6sdmpNWjRRIqCc7rdxs01lwHzfr3"; // Use the same key as in generate-config.js
-
-function decrypt(hash) {
-  const decipher = crypto.createDecipheriv(
-    algorithm,
-    secretKey,
-    Buffer.from(hash.iv, "hex")
-  );
-  const decrypted = Buffer.concat([
-    decipher.update(Buffer.from(hash.content, "hex")),
-    decipher.final(),
-  ]);
-  return decrypted.toString();
-}
-
-let config;
-try {
-  config = JSON.parse(decrypt(encryptedConfig));
-} catch (error) {
-  console.error("Error decrypting config:", error);
-  process.exit(1);
-}
-
-const supabaseUrl = config.SUPABASE_URL;
-const supabaseKey = config.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 function executeQuery(query) {
@@ -109,9 +86,11 @@ function checkScreenLock() {
     const powerTimeout = execSync(
       `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | findstr "Current AC Power Setting Index"`
     ).toString();
-    const timeout = powerTimeout.split("\n")
+    const timeout = powerTimeout
+      .split("\n")
       .filter(line => line.includes("Current AC Power Setting Index"))[0]
-      .split(":")[1].trim();
+      .split(":")[1]
+      .trim();
     return parseInt(timeout, 16) / 60;
   } else {
     query =

@@ -15,6 +15,7 @@
   },
   "bin": "src/main.js",
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.3"
+    "@supabase/supabase-js": "^2.45.3",
+    "dotenv": "^16.4.5"
   }
 }
