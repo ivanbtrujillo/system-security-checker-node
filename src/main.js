@@ -46,26 +46,18 @@ function executeQuery(query) {
 
 function checkDiskEncryption() {
   const system = os.platform();
-  let query;
   if (system === "darwin") {
-    query = "SELECT * FROM disk_encryption;";
-  } else if (system === "win32") {
-    query = "SELECT * FROM bitlocker_info;";
-  } else {
-    query = "SELECT * FROM disk_encryption;";
-  }
-
-  const result = executeQuery(query);
-
-  if (system === "darwin") {
+    const result = executeQuery("SELECT * FROM disk_encryption;");
     if (result.some(disk => parseInt(disk.encrypted) === 1)) {
       return "FileVault";
     }
   } else if (system === "win32") {
-    if (result.some(disk => parseInt(disk.encryption_status) === 1)) {
-      return "BitLocker";
-    }
+    const result = execSync(
+      `manage-bde -status | findstr "Protection Status"`
+    ).toString();
+    return result.includes("Protection On") ? "BitLocker" : null;
   } else {
+    const result = executeQuery("SELECT * FROM disk_encryption;");
     if (result.some(disk => parseInt(disk.encrypted) === 1)) {
       return "LUKS";
     }
@@ -91,11 +83,10 @@ function checkAntivirus() {
       }
     }
   } else if (system === "win32") {
-    query = "SELECT * FROM windows_security_products;";
-    const result = executeQuery(query);
-    if (result.length > 0) {
-      return result[0].display_name || "Windows Antivirus";
-    }
+    const result = execSync(
+      `wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName | findstr /V /B /C:displayName`
+    ).toString();
+    return result.trim() || null;
   } else {
     query =
       "SELECT name FROM processes WHERE name LIKE '%antivirus%' OR name LIKE '%anti-virus%';";
@@ -115,8 +106,13 @@ function checkScreenLock() {
     query =
       "SELECT value FROM preferences WHERE domain = 'com.apple.screensaver' AND key = 'idleTime';";
   } else if (system === "win32") {
-    query =
-      "SELECT data FROM registry WHERE path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\InactivityTimeoutSecs';";
+    const powerTimeout = execSync(
+      `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | findstr "Current AC Power Setting Index"`
+    ).toString();
+    const timeout = powerTimeout.split("\n")
+      .filter(line => line.includes("Current AC Power Setting Index"))[0]
+      .split(":")[1].trim();
+    return parseInt(timeout, 16) / 60;
   } else {
     query =
       "SELECT value FROM preferences WHERE domain = 'org.gnome.desktop.session' AND key = 'idle-delay';";
