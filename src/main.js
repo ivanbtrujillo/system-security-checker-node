@@ -213,6 +213,17 @@ async function sendReportToSupabase(userId, report) {
   }
 }
 
+function checkHasPermissions() {
+  if (os.platform() === "win32") {
+    try {
+      execSync("NET SESSION", {stdio: "ignore"});
+    } catch (error) {
+      console.error("Error: This script requires elevated permissions to run.");
+      process.exit(1);
+    }
+  }
+}
+
 async function main() {
   console.log("Checking system security...");
 
@@ -228,6 +239,8 @@ async function main() {
     console.error("Error: Could not obtain a valid user ID.");
     process.exit(1);
   }
+
+  checkHasPermissions();
 
   const encryption = checkDiskEncryption();
   const antivirus = checkAntivirus();
