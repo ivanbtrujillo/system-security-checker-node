@@ -10,6 +10,7 @@ const {createClient} = require("@supabase/supabase-js");
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+const ANTIVIRUS_PROCESSES = "clamav|sophos|eset|comodo|avg|avast|bitdefender"
 
 function executeQuery(query) {
   try {
@@ -34,10 +35,8 @@ function checkDiskEncryption() {
     ).toString();
     return result.includes("Protection On") ? "BitLocker" : null;
   } else {
-    const result = executeQuery("SELECT * FROM disk_encryption;");
-    if (result.some(disk => parseInt(disk.encrypted) === 1)) {
-      return "LUKS";
-    }
+    const result = execSync('lsblk -o TYPE').toString();
+    return result.includes('crypt') ? "LUKS" : null;
   }
 
   return null;
@@ -45,7 +44,6 @@ function checkDiskEncryption() {
 
 function checkAntivirus() {
   const system = os.platform();
-  let query;
   if (system === "darwin") {
     const queries = [
       "SELECT * FROM xprotect_entries;",
@@ -64,12 +62,12 @@ function checkAntivirus() {
       `wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName | findstr /V /B /C:displayName`
     ).toString();
     return result.trim() || null;
-  } else {
-    query =
-      "SELECT name FROM processes WHERE name LIKE '%antivirus%' OR name LIKE '%anti-virus%';";
-    const result = executeQuery(query);
-    if (result.length > 0) {
-      return result[0].name || "Unknown Antivirus";
+  } else if (system === "linux") {
+     // Search for known antivirus related processes
+     const processes = execSync(`systemctl list-units --type=service --state=running | grep -i -E '${ANTIVIRUS_PROCESSES}' | awk '{ $1=$2=$3=$4=\"\"; print $0 }'`).toString().split("\n").map(s => s.trim()).join(", ");
+    
+    if (processes) {
+      return processes;
     }
   }
 
@@ -78,10 +76,18 @@ function checkAntivirus() {
 
 function checkScreenLock() {
   const system = os.platform();
-  let query;
   if (system === "darwin") {
-    query =
-      "SELECT value FROM preferences WHERE domain = 'com.apple.screensaver' AND key = 'idleTime';";
+    const result = executeQuery("SELECT value FROM preferences WHERE domain = 'com.apple.screensaver' AND key = 'idleTime';");
+    if (result.length > 0 && result[0].value) {
+      const time = parseInt(result[0].value);
+      if (time > 0) {
+        if (system === "darwin" || system === "win32") {
+          return Math.floor(time / 60); // Convert seconds to minutes
+        } else {
+          return time; // Already in seconds
+        }
+      }
+    }
   } else if (system === "win32") {
     const powerTimeout = execSync(
       `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | findstr "Current AC Power Setting Index"`
@@ -92,21 +98,14 @@ function checkScreenLock() {
       .split(":")[1]
       .trim();
     return parseInt(timeout, 16) / 60;
-  } else {
-    query =
-      "SELECT value FROM preferences WHERE domain = 'org.gnome.desktop.session' AND key = 'idle-delay';";
-  }
+  } else if (system === "linux") {
+    // GNOME GUI
+    const lockEnabled = execSync('gsettings get org.gnome.desktop.screensaver lock-enabled').toString().trim();
 
-  const result = executeQuery(query);
-
-  if (result.length > 0 && result[0].value) {
-    const time = parseInt(result[0].value);
-    if (time > 0) {
-      if (system === "darwin" || system === "win32") {
-        return Math.floor(time / 60); // Convert seconds to minutes
-      } else {
-        return time; // Already in seconds
-      }
+    if (lockEnabled === 'true') {
+      // Get the idle time before the screen lock activates
+      const idleDelaySeconds = execSync('gsettings get org.gnome.desktop.session idle-delay').toString().split(" ")?.[1];
+      return parseInt(idleDelaySeconds, 10);
     }
   }
   return null;
