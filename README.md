@@ -15,7 +15,7 @@ This Node.js script uses osquery to check various security aspects of your syste
 2. Clone this repository:
 
    ```
-   git clone https://github.com/yourusername/system-security-checker-node.git
+   git clone https://github.com/ivanbtrujillo/system-security-checker-node.git
    cd system-security-checker-node
    ```
 
