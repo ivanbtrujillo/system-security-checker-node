@@ -92,6 +92,8 @@ CREATE TABLE IF NOT EXISTS
     report_id UUID NOT NULL,
     user_id UUID NOT NULL,
     report_details TEXT NOT NULL,
+    operating_system TEXT,
+    os_version TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -105,10 +107,10 @@ SELECT
 
 -- Create a function to log new security reports
 CREATE
-OR REPLACE FUNCTION public.log_new_security_report (report_id UUID, user_id UUID, report_details TEXT) RETURNS VOID AS $$
+OR REPLACE FUNCTION public.log_new_security_report (report_id UUID, user_id UUID, report_details TEXT,  operating_system TEXT, os_version TEXT) RETURNS VOID AS $$
 BEGIN
-    INSERT INTO public.security_reports (report_id, user_id, report_details)
-    VALUES (report_id, user_id, report_details);
+    INSERT INTO public.security_reports (report_id, user_id, report_details, operating_system, os_version)
+    VALUES (report_id, user_id, report_details, operating_system, os_version);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -116,7 +118,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE
 OR REPLACE FUNCTION public.trigger_log_new_security_report () RETURNS TRIGGER AS $$
 BEGIN
-    PERFORM public.log_new_security_report(NEW.report_id, NEW.user_id, NEW.report_details);
+    PERFORM public.log_new_security_report(NEW.report_id, NEW.user_id, NEW.report_details, NEW.operating_system, NEW.os_version);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
