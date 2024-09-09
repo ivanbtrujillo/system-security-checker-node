@@ -107,10 +107,15 @@ function checkScreenLock() {
       .trim();
     return parseInt(timeout, 16) / 60;
   } else if (system === "linux") {
-    const linuxDesktop = execSync("env | grep XDG_SESSION_DESKTOP")
+    let linuxDesktop = execSync("env | grep XDG_SESSION_DESKTOP")
       .toString()
       .split("=")?.[1]
       .trim();
+
+    if (linuxDesktop === "ubuntu") {
+      linuxDesktop = "gnome";
+    }
+    
     const lockEnabled = execSync(
       `gsettings get org.${linuxDesktop}.desktop.screensaver lock-enabled`
     )
