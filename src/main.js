@@ -4,8 +4,8 @@ const os = require("os");
 const fs = require("fs");
 const path = require("path");
 
-const {execSync} = require("child_process");
-const {createClient} = require("@supabase/supabase-js");
+const { execSync } = require("child_process");
+const { createClient } = require("@supabase/supabase-js");
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
@@ -63,9 +63,9 @@ function checkAntivirus() {
     ).toString();
     return result.trim() || null;
   } else if (system === "linux") {
-     // Search for known antivirus related processes
-     const processes = execSync(`systemctl list-units --type=service --state=running | grep -i -E '${ANTIVIRUS_PROCESSES}' | awk '{ $1=$2=$3=$4=\"\"; print $0 }'`).toString().split("\n").map(s => s.trim()).join(", ");
-    
+    // Search for known antivirus related processes
+    const processes = execSync(`systemctl list-units --type=service --state=running | grep -i -E '${ANTIVIRUS_PROCESSES}' | awk '{ $1=$2=$3=$4=\"\"; print $0 }'`).toString().split("\n").map(s => s.trim()).join(", ");
+
     if (processes) {
       return processes;
     }
@@ -99,13 +99,14 @@ function checkScreenLock() {
       .trim();
     return parseInt(timeout, 16) / 60;
   } else if (system === "linux") {
-    // GNOME GUI
-    const lockEnabled = execSync('gsettings get org.gnome.desktop.screensaver lock-enabled').toString().trim();
+
+    const linuxDesktop = execSync('env | grep XDG_SESSION_DESKTOP').toString().split("=")?.[1].trim();
+    const lockEnabled = execSync(`gsettings get org.${linuxDesktop}.desktop.screensaver lock-enabled`).toString().trim();
 
     if (lockEnabled === 'true') {
       // Get the idle time before the screen lock activates
-      const idleDelaySeconds = execSync('gsettings get org.gnome.desktop.session idle-delay').toString().split(" ")?.[1];
-      return parseInt(idleDelaySeconds, 10);
+      const idleDelaySeconds = execSync(`gsettings get org.${linuxDesktop}.desktop.session idle-delay`).toString().split(" ")?.[1];
+      return (parseInt(idleDelaySeconds, 10) / 60);
     }
   }
   return null;
@@ -113,7 +114,7 @@ function checkScreenLock() {
 
 async function checkUserIdExists(userId) {
   try {
-    const {data, error} = await supabase
+    const { data, error } = await supabase
       .from("user_logs")
       .select("*")
       .eq("user_id", userId)
@@ -162,7 +163,7 @@ async function getUserId() {
       continue;
     }
 
-    fs.writeFileSync(configPath, JSON.stringify({userId}));
+    fs.writeFileSync(configPath, JSON.stringify({ userId }));
   }
 
   return userId;
@@ -170,9 +171,9 @@ async function getUserId() {
 
 async function sendReportToSupabase(userId, report) {
   try {
-    const {data, error} = await supabase
+    const { data, error } = await supabase
       .from("security_reports")
-      .upsert({user_id: userId, ...report}, {onConflict: "user_id"});
+      .upsert({ user_id: userId, ...report }, { onConflict: "user_id" });
 
     if (error) throw error;
     console.log("Report sent to Supabase successfully.");
@@ -190,7 +191,7 @@ async function sendReportToSupabase(userId, report) {
 function checkHasPermissions() {
   if (os.platform() === "win32") {
     try {
-      execSync("NET SESSION", {stdio: "ignore"});
+      execSync("NET SESSION", { stdio: "ignore" });
     } catch (error) {
       console.error("Error: This script requires elevated permissions to run.");
       process.exit(1);
@@ -244,10 +245,7 @@ async function main() {
   }
 
   if (screenLockTime !== null) {
-    const unit =
-      os.platform() === "darwin" || os.platform() === "win32"
-        ? "minutes"
-        : "seconds";
+    const unit = "minutes";
     console.log(
       `✅ Screen lock activates after ${screenLockTime} ${unit} of inactivity.`
     );
