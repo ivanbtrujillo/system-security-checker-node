@@ -6,14 +6,11 @@ import {
 } from "./checks/diskEncryption";
 import { antivirusToString, checkAntivirus } from "./checks/antivirus";
 import { checkScreenLock, screenLockToString } from "./checks/screenLock";
-import { checkHasPermissions } from "./systemInfo/hasPermissions";
 import { sendReportToSupabase, getUserId } from "./utils/supabase";
 import { getOSInfo } from "./systemInfo/osInfo";
 
 async function main() {
   console.log("Checking system security...");
-
-  checkHasPermissions();
 
   const userId = await getUserId();
 
@@ -24,8 +21,8 @@ async function main() {
   const { osName, osVersion } = getOSInfo();
 
   const report = {
-    disk_encrypted: !!encryption,
-    encryption_type: encryption || null,
+    disk_encrypted: !!encryption.encryptionMethod,
+    encryption_type: encryption.encryptionMethod || null,
     antivirus_detected: !!antivirus,
     antivirus_name: antivirus || null,
     screen_lock_active: screenLockTime !== null,
