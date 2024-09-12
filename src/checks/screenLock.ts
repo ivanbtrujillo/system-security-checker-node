@@ -36,7 +36,7 @@ function checkWindowsScreenLock() {
 
     const onBatteryTimeout = onBattery.split(":")[1].trim();
 
-    timeout = Math.min(
+    timeout = Math.max(
       parseInt(onBatteryTimeout, 16),
       parseInt(pluggedInTimeout, 16)
     );
