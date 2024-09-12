@@ -1,5 +1,5 @@
 import os from "os";
-import { executeQuery } from "../utils/utils";
+import { execPowershell, executeQuery } from "../utils/utils";
 import { execSync } from "child_process";
 
 function checkMacOsScreenLock() {
@@ -19,31 +19,22 @@ function checkWindowsScreenLock() {
   let timeout;
 
   const haveBattery =
-    execSync(
-      "Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue",
-      { shell: "pwsh" }
+    execPowershell(
+      "Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue"
     )
       .toString()
       .trim() !== "";
-  const pluggedIn = execSync(
-    `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | findstr "Current AC Power Setting Index"`
+  const pluggedIn = execPowershell(
+    `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "Current AC Power Setting Index"`
   ).toString();
-  const pluggedInTimeout = pluggedIn
-    .split("\n")
-    .filter((line) => line.includes("Current AC Power Setting Index"))[0]
-    .split(":")[1]
-    .trim();
+  const pluggedInTimeout = pluggedIn.split(":")[1].trim();
 
   if (haveBattery) {
-    const onBattery = execSync(
-      `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | findstr "Current DC Power Setting Index"`
+    const onBattery = execPowershell(
+      `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "Current DC Power Setting Index"`
     ).toString();
 
-    const onBatteryTimeout = onBattery
-      .split("\n")
-      .filter((line) => line.includes("Current DC Power Setting Index"))[0]
-      .split(":")[1]
-      .trim();
+    const onBatteryTimeout = onBattery.split(":")[1].trim();
 
     timeout = Math.min(
       parseInt(onBatteryTimeout, 16),

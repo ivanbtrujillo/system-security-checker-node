@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { executeQuery } from "../utils/utils";
+import { execPowershell, executeQuery } from "../utils/utils";
 import os from "os";
 
 export function checkDiskEncryption() {
@@ -14,7 +14,7 @@ export function checkDiskEncryption() {
       return "FileVault";
     }
   } else if (system === "win32") {
-    const result = execSync(
+    const result = execPowershell(
       `manage-bde -status | findstr "Protection Status"`
     ).toString();
     return result.includes("Protection On") ? "BitLocker" : null;

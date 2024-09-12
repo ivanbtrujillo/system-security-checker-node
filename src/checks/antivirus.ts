@@ -1,4 +1,4 @@
-import { executeQuery } from "../utils/utils";
+import { execPowershell, executeQuery } from "../utils/utils";
 import os from "os";
 import { execSync } from "child_process";
 
@@ -20,7 +20,7 @@ export function checkAntivirus() {
       }
     }
   } else if (system === "win32") {
-    const result = execSync(
+    const result = execPowershell(
       `wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName | findstr /V /B /C:displayName`
     ).toString();
     return result.trim() || null;
