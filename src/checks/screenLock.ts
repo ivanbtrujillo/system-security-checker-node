@@ -1,17 +1,31 @@
 import os from "os";
-import { execPowershell, executeQuery } from "../utils/utils";
-import { execSync } from "child_process";
+import {execPowershell, executeQuery} from "../utils/utils";
+import {execSync} from "child_process";
 
 function checkMacOsScreenLock() {
-  const result = executeQuery(
-    "SELECT value FROM preferences WHERE domain = 'com.apple.screensaver' AND key = 'idleTime';"
-  );
-  if (result.length > 0 && result[0].value) {
-    const time = parseInt(result[0].value);
-    if (time > 0) {
-      return Math.floor(time / 60);
+  try {
+    const output = execSync("sysadminctl -screenLock status 2>&1")
+      .toString()
+      .trim();
+
+    if (output.includes("screenLock is off")) {
+      return null;
+    } else if (output.includes("screenLock delay is immediate")) {
+      return 1;
+    } else {
+      const match = output.match(/screenLock delay is (\d+) seconds/);
+      if (match && match[1]) {
+        const seconds = parseInt(match[1], 10);
+        return Math.floor(seconds / 60);
+      }
     }
+  } catch (error) {
+    console.error(
+      "Error al verificar el estado de la pantalla de bloqueo:",
+      error
+    );
   }
+
   return null;
 }
 
