@@ -4,14 +4,16 @@
   "description": "System security checker using osquery and Node.js",
   "main": "src/main.js",
   "scripts": {
-    "start": "node src/main.js",
+    "start": "tsc && node dist/main.js",
     "build": "rm -rf dist && node generate-config.js && pkg ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "pkg": "^5.8.1"
+    "pkg": "^5.8.1",
+    "tslint": "^5.20.1",
+    "typescript": "^5.6.2"
   },
   "bin": "src/main.js",
   "dependencies": {
