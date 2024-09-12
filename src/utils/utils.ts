@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execSync, ExecSyncOptionsWithBufferEncoding } from "child_process";
 
 export function executeQuery(query: string) {
   try {
@@ -8,4 +8,11 @@ export function executeQuery(query: string) {
     console.error(`Error executing query: ${error.message}`);
     return [];
   }
+}
+
+export function execPowershell(
+  command: string,
+  options?: ExecSyncOptionsWithBufferEncoding
+) {
+  return execSync(command, { shell: "pwsh", ...options });
 }

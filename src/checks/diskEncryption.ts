@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { executeQuery } from "../utils/utils";
+import { execPowershell, executeQuery } from "../utils/utils";
 import os from "os";
 import { checkHasPermissions } from "../systemInfo/hasPermissions";
 
@@ -23,6 +23,7 @@ export function checkDiskEncryption() {
       return { encryptionMethod: encryption, hasPermissions: true };
     }
     return { encryptionMethod: null, hasPermissions: false };
+
   } else {
     const result = execSync("lsblk -o TYPE").toString();
     const encryption = result.includes("crypt") ? "LUKS" : null;
