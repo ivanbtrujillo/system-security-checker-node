@@ -16,7 +16,8 @@ function getSupabaseClient() {
 export const supabaseClient = getSupabaseClient();
 
 export async function sendReportToSupabase(
-  userId: any,
+  userId: string,
+  deviceId: string,
   report: {
     disk_encrypted: boolean;
     encryption_type: string | null;
@@ -32,7 +33,10 @@ export async function sendReportToSupabase(
   try {
     const { data, error } = await supabaseClient
       .from("security_reports")
-      .upsert({ user_id: userId, ...report }, { onConflict: "user_id" });
+      .upsert(
+        { user_id: userId, device_id: deviceId, ...report },
+        { onConflict: "user_id" }
+      );
 
     if (error) throw error;
     console.log("Report sent to Supabase successfully.");
@@ -66,7 +70,7 @@ async function checkUserIdExists(userId: string) {
 export async function getUserId() {
   try {
     const configPath = path.join(os.homedir(), ".security-check-config.json");
-    let userId;
+    let userId: string | null = null;
 
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));

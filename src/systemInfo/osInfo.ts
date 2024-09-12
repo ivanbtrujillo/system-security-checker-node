@@ -56,5 +56,10 @@ export function getDeviceSerial() {
       serial = null;
   }
 
+  if (!serial) {
+    console.error("Error: Could not retrieve device serial number.");
+    process.exit(1);
+  }
+
   return serial;
 }
