@@ -32,8 +32,6 @@ function checkWindowsAntivirus() {
     .filter((s) => s.length > 0)
     .join(", ");
 
-  console.log(result);
-
   return antivirusNames || null;
 }
 
