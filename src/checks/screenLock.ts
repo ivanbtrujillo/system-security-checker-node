@@ -29,21 +29,21 @@ function checkMacOsScreenLock() {
     const displaySleepOnBattery = getDisplaySleep("Battery Power");
     const displaySleepOnAC = getDisplaySleep("AC Power");
 
-    let maxTimeoutSeconds = Math.max(
+    let maxTimeoutMinutes = Math.max(
       screenSaver,
       displaySleepOnAC,
       displaySleepOnBattery
     );
 
     if (output.includes("screenLock delay is immediate")) {
-      return Math.floor(maxTimeoutSeconds / 60);
+      return maxTimeoutMinutes || null;
     }
 
     const match = output.match(/screenLock delay is (\d+) seconds/);
 
     if (match && match[1]) {
-      const screenLockSecondsDelay = parseInt(match[1], 10);
-      return Math.floor(maxTimeoutSeconds + screenLockSecondsDelay / 60);
+      const screenLockMinutesDelay = parseInt(match[1], 10) / 60;
+      return (maxTimeoutMinutes + screenLockMinutesDelay) || null;
     }
   } catch (error) {
     console.error("Error checking screen lock status:", error);
