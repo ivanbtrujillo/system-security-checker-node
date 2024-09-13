@@ -1,7 +1,11 @@
 import os from "os";
-import {execPowershell, executeQuery} from "../utils/utils";
-import {execSync} from "child_process";
+import { execPowershell } from "../utils/utils";
+import { execSync } from "child_process";
 
+const getDisplaySleep = (mode: "Battery Power" | "AC Power") => {
+  const output = execSync(`pmset -g custom | awk '/${mode}/,/displaysleep/ {if ($1 == "displaysleep") print $2}'`).toString().trim();
+  return parseInt(output)
+}
 function checkMacOsScreenLock() {
   try {
     const output = execSync("sysadminctl -screenLock status 2>&1")
@@ -11,7 +15,12 @@ function checkMacOsScreenLock() {
     if (output.includes("screenLock is off")) {
       return null;
     } else if (output.includes("screenLock delay is immediate")) {
-      return 1;
+      const screenSaver = parseInt(execSync("defaults -currentHost read com.apple.screensaver idleTime").toString().trim()) / 60;
+      const displaySleepOnBattery = getDisplaySleep("Battery Power");
+      const displaySleepOnAC = getDisplaySleep("AC Power");
+      const longestPeriod = Math.max(screenSaver, displaySleepOnBattery, displaySleepOnAC);
+      // if period is 0 it means the screen does not lock at all
+      return longestPeriod === 0 ? null : longestPeriod;
     } else {
       const match = output.match(/screenLock delay is (\d+) seconds/);
       if (match && match[1]) {
