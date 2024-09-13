@@ -15,7 +15,7 @@ export function getOSInfo() {
       osVersion = os.release();
       break;
     case "linux":
-      osName = "Linux | " + execSync("lsb_release -is").toString().trim();
+      osName = "Linux | " + execSync("lsb_release -ds").toString().replace(/\"/g, "").trim();
       try {
         osVersion = execSync("lsb_release -rs").toString().trim();
       } catch (error) {
