@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import {createClient} from "@supabase/supabase-js";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -16,7 +16,8 @@ function getSupabaseClient() {
 export const supabaseClient = getSupabaseClient();
 
 export async function sendReportToSupabase(
-  userId: any,
+  userId: string,
+  deviceId: string,
   report: {
     disk_encrypted: boolean;
     encryption_type: string | null;
@@ -30,9 +31,12 @@ export async function sendReportToSupabase(
   }
 ) {
   try {
-    const { data, error } = await supabaseClient
+    const {data, error} = await supabaseClient
       .from("security_reports")
-      .upsert({ user_id: userId, ...report }, { onConflict: "user_id" });
+      .upsert(
+        {user_id: userId, device_id: deviceId, ...report},
+        {onConflict: "user_id,device_id"}
+      );
 
     if (error) throw error;
     console.log("Report sent to Supabase successfully.");
@@ -49,7 +53,7 @@ export async function sendReportToSupabase(
 
 async function checkUserIdExists(userId: string) {
   try {
-    const { data, error } = await supabaseClient
+    const {data, error} = await supabaseClient
       .from("user_logs")
       .select("*")
       .eq("user_id", userId)
@@ -66,7 +70,7 @@ async function checkUserIdExists(userId: string) {
 export async function getUserId() {
   try {
     const configPath = path.join(os.homedir(), ".security-check-config.json");
-    let userId;
+    let userId: string | null = null;
 
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -79,7 +83,7 @@ export async function getUserId() {
         output: process.stdout,
       });
 
-      userId = (await new Promise((resolve) => {
+      userId = (await new Promise(resolve => {
         readline.question("Please enter your user ID: ", (answer: string) => {
           readline.close();
           resolve(answer.trim());
@@ -99,7 +103,7 @@ export async function getUserId() {
         continue;
       }
 
-      fs.writeFileSync(configPath, JSON.stringify({ userId }));
+      fs.writeFileSync(configPath, JSON.stringify({userId}));
     }
 
     if (!userId) {

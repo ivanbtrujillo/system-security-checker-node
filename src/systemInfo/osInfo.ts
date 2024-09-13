@@ -29,3 +29,37 @@ export function getOSInfo() {
 
   return { osName, osVersion };
 }
+
+export function getDeviceSerial() {
+  const platform = os.platform();
+  let serial;
+
+  switch (platform) {
+    case "darwin":
+      serial = execSync(
+        "system_profiler SPHardwareDataType | grep 'Serial Number' | awk '{print $4}'"
+      )
+        .toString()
+        .trim();
+      break;
+    case "win32":
+      serial = execSync("wmic os get serialnumber")
+        .toString()
+        .split("\n")[1]
+        .trim();
+      break;
+    case "linux":
+      // TODO: Implement Linux serial number retrieval
+      serial = execSync("dmidecode -s system-serial-number").toString().trim();
+      break;
+    default:
+      serial = null;
+  }
+
+  if (!serial) {
+    console.error("Error: Could not retrieve device serial number.");
+    process.exit(1);
+  }
+
+  return serial;
+}

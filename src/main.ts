@@ -7,12 +7,13 @@ import {
 import { antivirusToString, checkAntivirus } from "./checks/antivirus";
 import { checkScreenLock, screenLockToString } from "./checks/screenLock";
 import { sendReportToSupabase, getUserId } from "./utils/supabase";
-import { getOSInfo } from "./systemInfo/osInfo";
+import { getDeviceSerial, getOSInfo } from "./systemInfo/osInfo";
 
 async function main() {
   console.log("Checking system security...");
 
   const userId = await getUserId();
+  const deviceId = getDeviceSerial();
 
   const encryption = checkDiskEncryption();
   const antivirus = checkAntivirus();
@@ -37,7 +38,7 @@ async function main() {
   console.log(diskEncryptionToString(encryption));
   console.log(screenLockToString(screenLockTime));
 
-  await sendReportToSupabase(userId, report);
+  await sendReportToSupabase(userId, deviceId, report);
 
   console.log("Press Enter to close...");
   process.stdin.once("data", () => {
