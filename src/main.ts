@@ -22,8 +22,8 @@ async function main() {
   const { osName, osVersion } = getOSInfo();
 
   const report = {
-    disk_encrypted: !!encryption.encryptionMethod,
-    encryption_type: encryption.encryptionMethod || null,
+    disk_encrypted: !!encryption,
+    encryption_type: encryption || null,
     antivirus_detected: !!antivirus,
     antivirus_name: antivirus || null,
     screen_lock_active: screenLockTime !== null,

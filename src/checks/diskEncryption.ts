@@ -1,33 +1,40 @@
 import { execSync } from "child_process";
 import { execPowershell, executeQuery } from "../utils/utils";
 import os from "os";
-import { checkHasPermissions } from "../systemInfo/hasPermissions";
 
 function checkMacOsDiskEncryption() {
   const result = executeQuery("SELECT * FROM disk_encryption;");
   if (
     result.some((disk: { encrypted: string }) => parseInt(disk.encrypted) === 1)
   ) {
-    return { encryptionMethod: "FileVault", hasPermissions: true };
+    return "FileVault";
   }
-  return { encryptionMethod: null, hasPermissions: true };
+  return null;
 }
 
+const BITLOCKER_STATUS = {
+  unencryptable: 0,
+  encrypted: 1,
+  not_encrypted: 2,
+  encryption_in_progress: 3,
+};
+
 function checkWindowsDiskEncryption() {
-  if (checkHasPermissions()) {
-    const result = execSync(
-      `manage-bde -status | findstr "Protection Status"`
-    ).toString();
-    const encryption = result.includes("Protection On") ? "BitLocker" : null;
-    return { encryptionMethod: encryption, hasPermissions: true };
+  const result = execPowershell(
+    `(New-Object -ComObject Shell.Application).NameSpace('C:').Self.ExtendedProperty('System.Volume.BitLockerProtection')`
+  )
+    .toString()
+    .trim();
+  if (result === BITLOCKER_STATUS["encrypted"].toString()) {
+    return "BitLocker";
   }
-  return { encryptionMethod: null, hasPermissions: false };
+  return null;
 }
 
 function checkLinuxDiskEncryption() {
   const result = execSync("lsblk -o TYPE").toString();
   const encryption = result.includes("crypt") ? "LUKS" : null;
-  return { encryptionMethod: encryption, hasPermissions: true };
+  return encryption;
 }
 
 export function checkDiskEncryption() {
@@ -42,15 +49,9 @@ export function checkDiskEncryption() {
   throw new Error("Unsupported operating system.");
 }
 
-export function diskEncryptionToString({
-  encryptionMethod,
-  hasPermissions,
-}: {
-  encryptionMethod: string | null;
-  hasPermissions: boolean;
-}) {
-  if (!hasPermissions)
-    return "❓ Insufficient permissions to check disk encryption.";
+export function diskEncryptionToString(
+  encryptionMethod: string | null
+): string {
   if (!encryptionMethod) return "❌ Disk is not encrypted.";
   return `✅ Disk is encrypted with ${encryptionMethod}.`;
 }
