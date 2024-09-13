@@ -49,8 +49,7 @@ export function getDeviceSerial() {
         .trim();
       break;
     case "linux":
-      // TODO: Implement Linux serial number retrieval
-      serial = execSync("dmidecode -s system-serial-number").toString().trim();
+      serial = execSync("cat /etc/machine-id").toString().trim();
       break;
     default:
       serial = null;
