@@ -104,13 +104,19 @@ function checkLinuxScreenLock() {
     .trim();
 
   if (lockEnabled === "true") {
-    // Get the idle time before the screen lock activates
+    // Get the idle time before the screen saver activates
     const idleDelaySeconds = execSync(
       `gsettings get org.${linuxDesktop}.desktop.session idle-delay`
     )
       .toString()
       .split(" ")?.[1];
-    return parseInt(idleDelaySeconds, 10) / 60;
+    // Get the time before the screen is locked (this applies after the idle delay)
+    const lockDelaySeconds = execSync(
+      `gsettings get org.${linuxDesktop}.desktop.screensaver lock-delay`
+    )
+      .toString()
+      .split(" ")?.[1];
+    return (parseInt(idleDelaySeconds, 10) / 60) + (parseInt(lockDelaySeconds, 10) / 60);
   }
   return null;
 }
