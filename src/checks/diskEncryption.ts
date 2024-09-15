@@ -32,9 +32,19 @@ function checkWindowsDiskEncryption() {
 }
 
 function checkLinuxDiskEncryption() {
+  // Check for ecryptfs
+  const ecryptfsCheck = execSync("mount | grep ecryptfs").toString();
+  if (ecryptfsCheck.includes("ecryptfs")) {
+    return "ecryptfs";
+  }
+
+  // Check for LUKS
   const result = execSync("lsblk -o TYPE").toString();
-  const encryption = result.includes("crypt") ? "LUKS" : null;
-  return encryption;
+  if (result.includes("crypt")) {
+    return "LUKS";
+  }
+
+  return null;
 }
 
 export function checkDiskEncryption() {
