@@ -14,5 +14,5 @@ export function execPowershell(
   command: string,
   options?: ExecSyncOptionsWithBufferEncoding
 ) {
-  return execSync(command, { shell: "pwsh", ...options });
+  return execSync(command, { shell: "pwsh", ...options }).toString().trim();
 }

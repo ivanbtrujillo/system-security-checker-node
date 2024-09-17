@@ -23,7 +23,7 @@ function checkMacOsAntivirus() {
 function checkWindowsAntivirus() {
   const result = execPowershell(
     `wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName`
-  ).toString();
+  );
 
   const antivirusNames = result
     .split("\n")

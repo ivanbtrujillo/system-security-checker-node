@@ -22,9 +22,7 @@ const BITLOCKER_STATUS = {
 function checkWindowsDiskEncryption() {
   const result = execPowershell(
     `(New-Object -ComObject Shell.Application).NameSpace('C:').Self.ExtendedProperty('System.Volume.BitLockerProtection')`
-  )
-    .toString()
-    .trim();
+  );
   if (result === BITLOCKER_STATUS["encrypted"].toString()) {
     return "BitLocker";
   }
