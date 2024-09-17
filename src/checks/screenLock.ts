@@ -52,24 +52,27 @@ function checkMacOsScreenLock() {
   return null;
 }
 
+function getPreferredLanguage() {
+  return execPowershell("Get-SystemPreferredUILanguage").split("-")[0].toLowerCase();
+}
+
+function getPowerConfigCommand  (pattern: string) {
+  return `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "${pattern}"`;
+}
+
 function checkWindowsScreenLock() {
   let timeout;
 
-  const haveBattery =
-    execPowershell(
-      "Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue"
-    )
-      .toString()
-      .trim() !== "";
-  const pluggedIn = execPowershell(
-    `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "Current AC Power Setting Index"`
-  ).toString();
+  const preferredLanguage = getPreferredLanguage();
+  const acPowerSettings = preferredLanguage === 'es' ? "Índice de configuración de corriente alterna actual" : "Current AC Power Setting Index";
+  const dcPowerSettings = preferredLanguage === 'es' ? "Índice de configuración de corriente continua actual" : "Current DC Power Setting Index";
+
+  const pluggedIn = execPowershell(getPowerConfigCommand(acPowerSettings));
   const pluggedInTimeout = pluggedIn.split(":")[1].trim();
 
+  const haveBattery = execPowershell("Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue") !== "";
   if (haveBattery) {
-    const onBattery = execPowershell(
-      `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "Current DC Power Setting Index"`
-    ).toString();
+    const onBattery = execPowershell(getPowerConfigCommand(dcPowerSettings));
 
     const onBatteryTimeout = onBattery.split(":")[1].trim();
 
