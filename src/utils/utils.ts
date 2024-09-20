@@ -14,5 +14,19 @@ export function execPowershell(
   command: string,
   options?: ExecSyncOptionsWithBufferEncoding
 ) {
-  return execSync(command, { shell: "pwsh", ...options });
+  const hasPwsh = checkHasExecutable("pwsh");
+  const hasPowershell = checkHasExecutable("powershell");
+  if (!hasPwsh && !hasPowershell) throw "No Powershell detected";
+  const shell = hasPwsh ? "pwsh" : "powershell";
+  return execSync(command, { shell, ...options });
+}
+
+export function checkHasExecutable(name: string): boolean {
+  return (
+    execSync(`where ${name} > nul 2> nul && echo true || echo false`, {
+      shell: "cmd",
+    })
+      .toString()
+      .trim() === "true"
+  );
 }
