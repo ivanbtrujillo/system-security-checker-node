@@ -1,6 +1,6 @@
 import os from "os";
-import {execPowershell} from "../utils/utils";
-import {execSync} from "child_process";
+import { execPowershell } from "../utils/utils";
+import { execSync } from "child_process";
 
 const getDisplaySleep = (mode: "Battery Power" | "AC Power") => {
   const output = execSync(

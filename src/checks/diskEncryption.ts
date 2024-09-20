@@ -17,6 +17,7 @@ const BITLOCKER_STATUS = {
   encrypted: 1,
   not_encrypted: 2,
   encryption_in_progress: 3,
+  encrypted_only_space_used: 7,
 };
 
 function checkWindowsDiskEncryption() {
@@ -25,6 +26,10 @@ function checkWindowsDiskEncryption() {
   );
   if (result === BITLOCKER_STATUS["encrypted"].toString()) {
     return "BitLocker";
+  } else if (
+    result === BITLOCKER_STATUS["encrypted_only_space_used"].toString()
+  ) {
+    return "Bitlocker: only space used";
   }
   return null;
 }
