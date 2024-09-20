@@ -31,7 +31,7 @@ function checkWindowsDiskEncryption() {
 
 function checkLinuxDiskEncryption() {
   // Check for ecryptfs
-  const ecryptfsCheck = execSync("mount | grep ecryptfs").toString();
+  const ecryptfsCheck = execSync("mount | grep ecryptfs | cat").toString();
   if (ecryptfsCheck.includes("ecryptfs")) {
     return "ecryptfs";
   }
