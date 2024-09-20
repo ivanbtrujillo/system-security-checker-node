@@ -22,9 +22,17 @@ function checkMacOsAntivirus() {
 
 function checkWindowsAntivirus() {
   const result = execPowershell(
-    `wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName | findstr /V /B /C:displayName`
-  ).toString();
-  return result.trim() || null;
+    `wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct Get DisplayName`
+  );
+
+  const antivirusNames = result
+    .split("\n")
+    .filter((s) => s.trim().toLowerCase() !== "displayname")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .join(", ");
+
+  return antivirusNames || null;
 }
 
 function checkLinuxAntivirus() {

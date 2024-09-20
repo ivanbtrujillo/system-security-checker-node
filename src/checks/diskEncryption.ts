@@ -23,9 +23,7 @@ const BITLOCKER_STATUS = {
 function checkWindowsDiskEncryption() {
   const result = execPowershell(
     `(New-Object -ComObject Shell.Application).NameSpace('C:').Self.ExtendedProperty('System.Volume.BitLockerProtection')`
-  )
-    .toString()
-    .trim();
+  );
   if (result === BITLOCKER_STATUS["encrypted"].toString()) {
     return "BitLocker";
   } else if (
@@ -37,9 +35,19 @@ function checkWindowsDiskEncryption() {
 }
 
 function checkLinuxDiskEncryption() {
+  // Check for ecryptfs
+  const ecryptfsCheck = execSync("mount | grep ecryptfs").toString();
+  if (ecryptfsCheck.includes("ecryptfs")) {
+    return "ecryptfs";
+  }
+
+  // Check for LUKS
   const result = execSync("lsblk -o TYPE").toString();
-  const encryption = result.includes("crypt") ? "LUKS" : null;
-  return encryption;
+  if (result.includes("crypt")) {
+    return "LUKS";
+  }
+
+  return null;
 }
 
 export function checkDiskEncryption() {

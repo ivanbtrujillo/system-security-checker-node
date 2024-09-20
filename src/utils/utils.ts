@@ -18,7 +18,9 @@ export function execPowershell(
   const hasPowershell = checkHasExecutable("powershell");
   if (!hasPwsh && !hasPowershell) throw "No Powershell detected";
   const shell = hasPwsh ? "pwsh" : "powershell";
-  return execSync(command, { shell, ...options });
+  return execSync(command, { shell, ...options })
+    .toString()
+    .trim();
 }
 
 export function checkHasExecutable(name: string): boolean {
