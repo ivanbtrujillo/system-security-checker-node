@@ -1,6 +1,6 @@
 import os from "os";
-import {execPowershell} from "../utils/utils";
-import {execSync} from "child_process";
+import { execPowershell } from "../utils/utils";
+import { execSync } from "child_process";
 
 const getDisplaySleep = (mode: "Battery Power" | "AC Power") => {
   const output = execSync(
@@ -54,6 +54,19 @@ function checkMacOsScreenLock() {
 
 function checkWindowsScreenLock() {
   let timeout;
+  const PLUGGED_IN_PATTERN: Record<string, string> = {
+    es: "Índice de configuración de corriente alterna actual",
+    en: "Current AC Power Setting Index",
+  };
+  const ON_BATTERY_PATTERN: Record<string, string> = {
+    es: "Índice de configuración de corriente continua actual",
+    en: "Current DC Power Setting Index",
+  };
+
+  const systemLanguage = execPowershell(`$PSUICulture`)
+    .toString()
+    .trim()
+    .substring(0, 2);
 
   const haveBattery =
     execPowershell(
@@ -62,13 +75,13 @@ function checkWindowsScreenLock() {
       .toString()
       .trim() !== "";
   const pluggedIn = execPowershell(
-    `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "Current AC Power Setting Index"`
+    `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "${PLUGGED_IN_PATTERN[systemLanguage]}"`
   ).toString();
   const pluggedInTimeout = pluggedIn.split(":")[1].trim();
 
   if (haveBattery) {
     const onBattery = execPowershell(
-      `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "Current DC Power Setting Index"`
+      `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "${ON_BATTERY_PATTERN[systemLanguage]}"`
     ).toString();
 
     const onBatteryTimeout = onBattery.split(":")[1].trim();
