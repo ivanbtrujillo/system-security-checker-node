@@ -62,7 +62,7 @@ function getPowerConfigCommand  (pattern: string) {
 
 function checkWindowsScreenLock() {
   let timeout;
-  
+
   const preferredLanguage = getPreferredLanguage();
   const acPowerSettings = preferredLanguage === 'es' ? "Índice de configuración de corriente alterna actual" : "Current AC Power Setting Index";
   const dcPowerSettings = preferredLanguage === 'es' ? "Índice de configuración de corriente continua actual" : "Current DC Power Setting Index";
