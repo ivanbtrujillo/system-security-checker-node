@@ -1,16 +1,23 @@
-import {createClient} from "@supabase/supabase-js";
+import {createClient, SupabaseClient} from "@supabase/supabase-js";
 import path from "path";
 import fs from "fs";
 import os from "os";
 
 function getSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    console.error("Error: Missing Supabase URL or anonymous key in .env file.");
-    process.exit(1);
-  }
-  return createClient(supabaseUrl, supabaseKey);
+  let client: SupabaseClient | null = null;
+  return () => {
+    if (client !== null) {
+      return client;
+    }
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Error: Missing Supabase URL or anonymous key in .env file.");
+      process.exit(1);
+    }
+    client = createClient(supabaseUrl, supabaseKey);
+    return client;
+  };
 }
 
 export const supabaseClient = getSupabaseClient();
@@ -31,7 +38,7 @@ export async function sendReportToSupabase(
   }
 ) {
   try {
-    const {data, error} = await supabaseClient
+    const {data, error} = await supabaseClient()
       .from("security_reports")
       .upsert(
         {user_id: userId, device_id: deviceId, ...report},
@@ -53,7 +60,7 @@ export async function sendReportToSupabase(
 
 async function checkUserIdExists(userId: string) {
   try {
-    const {data, error} = await supabaseClient
+    const {data, error} = await supabaseClient()
       .from("user_logs")
       .select("*")
       .eq("user_id", userId)
@@ -67,7 +74,11 @@ async function checkUserIdExists(userId: string) {
   }
 }
 
-export async function getUserId() {
+export async function getUserId(dryRun: boolean) {
+  if (dryRun) {
+    return "local-dry-run";
+  }
+
   try {
     const configPath = path.join(os.homedir(), ".security-check-config.json");
     let userId: string | null = null;

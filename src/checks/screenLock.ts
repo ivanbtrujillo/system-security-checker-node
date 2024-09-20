@@ -100,6 +100,13 @@ function checkLinuxScreenLock() {
     linuxDesktop = "gnome";
   }
 
+  if (linuxDesktop === "awesome") {
+    const sessions = execSync("ls /usr/bin/*session");
+    if (sessions.includes("gnome")) {
+      linuxDesktop = "gnome";
+    }
+  }
+
   const lockEnabled = execSync(
     `gsettings get org.${linuxDesktop}.desktop.screensaver lock-enabled`
   )
