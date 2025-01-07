@@ -4,27 +4,31 @@ import {
   checkDiskEncryption,
   diskEncryptionToString,
 } from "./checks/diskEncryption";
-import { antivirusToString, checkAntivirus } from "./checks/antivirus";
-import { checkScreenLock, screenLockToString } from "./checks/screenLock";
-import { sendReportToSupabase, getUserId } from "./utils/supabase";
-import { getDeviceSerial, getOSInfo } from "./systemInfo/osInfo";
+import {antivirusToString, checkAntivirus} from "./checks/antivirus";
+import {checkScreenLock, screenLockToString} from "./checks/screenLock";
+import {
+  sendReportToSupabase,
+  getUserEmail,
+  getUserFullName,
+} from "./utils/supabase";
+import {getDeviceSerial, getOSInfo} from "./systemInfo/osInfo";
 
 async function main() {
-  const dryRun = process.argv.includes('--dry-run');
+  const dryRun = process.argv.includes("--dry-run");
   if (dryRun) {
     console.log("Dry run mode...");
   }
 
   console.log("Checking system security...");
 
-  const userId = await getUserId(dryRun);
+  const userEmail = await getUserEmail(dryRun);
+  const userFullName = await getUserFullName(dryRun);
   const deviceId = getDeviceSerial();
-
   const encryption = checkDiskEncryption();
   const antivirus = checkAntivirus();
   const screenLockTime = checkScreenLock();
 
-  const { osName, osVersion } = getOSInfo();
+  const {osName, osVersion} = getOSInfo();
 
   const report = {
     disk_encrypted: !!encryption,
@@ -44,9 +48,11 @@ async function main() {
   console.log(screenLockToString(screenLockTime));
 
   if (dryRun) {
-    console.log(JSON.stringify({ userId, deviceId, report}, null, 4));
+    console.log(
+      JSON.stringify({userEmail, userFullName, deviceId, report}, null, 4)
+    );
   } else {
-    await sendReportToSupabase(userId, deviceId, report);
+    await sendReportToSupabase(userEmail, userFullName, deviceId, report);
   }
 
   console.log("Press Enter to close...");
@@ -55,7 +61,7 @@ async function main() {
   });
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error("Unexpected error:", error.message);
   process.exit(1);
 });

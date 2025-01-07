@@ -12,7 +12,9 @@ function getSupabaseClient() {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
     if (!supabaseUrl || !supabaseKey) {
-      console.error("Error: Missing Supabase URL or anonymous key in .env file.");
+      console.error(
+        "Error: Missing Supabase URL or anonymous key in .env file."
+      );
       process.exit(1);
     }
     client = createClient(supabaseUrl, supabaseKey);
@@ -23,8 +25,9 @@ function getSupabaseClient() {
 export const supabaseClient = getSupabaseClient();
 
 export async function sendReportToSupabase(
-  userId: string,
   deviceId: string,
+  userEmail: string,
+  userFullName: string,
   report: {
     disk_encrypted: boolean;
     encryption_type: string | null;
@@ -41,8 +44,13 @@ export async function sendReportToSupabase(
     const {data, error} = await supabaseClient()
       .from("security_reports")
       .upsert(
-        {user_id: userId, device_id: deviceId, ...report},
-        {onConflict: "user_id,device_id"}
+        {
+          device_id: deviceId,
+          user_email: userEmail,
+          user_full_name: userFullName,
+          ...report,
+        },
+        {onConflict: "user_email,device_id"}
       );
 
     if (error) throw error;
@@ -58,73 +66,84 @@ export async function sendReportToSupabase(
   }
 }
 
-async function checkUserIdExists(userId: string) {
-  try {
-    const {data, error} = await supabaseClient()
-      .from("user_logs")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    if (error) throw error;
-    return !!data;
-  } catch (error: any) {
-    console.error("Error verifying user ID in Supabase:", error.message);
-    return false;
-  }
-}
-
-export async function getUserId(dryRun: boolean) {
+export async function getUserEmail(dryRun: boolean) {
   if (dryRun) {
     return "local-dry-run";
   }
 
   try {
-    const configPath = path.join(os.homedir(), ".security-check-config.json");
-    let userId: string | null = null;
+    let userEmail: string | null = null;
 
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      userId = config.userId;
-    }
-
-    while (!userId) {
+    while (!userEmail) {
       const readline = require("readline").createInterface({
         input: process.stdin,
         output: process.stdout,
       });
 
-      userId = (await new Promise(resolve => {
-        readline.question("Please enter your user ID: ", (answer: string) => {
-          readline.close();
-          resolve(answer.trim());
-        });
+      userEmail = (await new Promise(resolve => {
+        readline.question(
+          "Please enter your company email: ",
+          (answer: string) => {
+            readline.close();
+            resolve(answer.trim());
+          }
+        );
       })) as string;
 
-      if (!userId || userId.length === 0) {
-        console.error("Error: User ID cannot be empty.");
-        userId = null;
+      if (!userEmail || userEmail.length === 0) {
+        console.error("Error: Email cannot be empty.");
+        userEmail = null;
         continue;
       }
 
-      const userExists = await checkUserIdExists(userId);
-      if (!userExists) {
-        console.error("Error: User ID does not exist in Supabase.");
-        userId = null;
+      if (!userEmail.includes("@")) {
+        console.error("Error: Email must be a valid email address.");
+        userEmail = null;
         continue;
       }
-
-      fs.writeFileSync(configPath, JSON.stringify({userId}));
     }
 
-    if (!userId) {
-      console.error("Error: Could not obtain a valid user ID.");
-      process.exit(1);
-    }
-
-    return userId;
+    return userEmail;
   } catch (error: any) {
-    console.error("Error obtaining user ID:", error.message);
+    console.error("Error obtaining user email:", error.message);
+    process.exit(1);
+  }
+}
+
+export async function getUserFullName(dryRun: boolean) {
+  if (dryRun) {
+    return "local-dry-run";
+  }
+
+  try {
+    let userFullName: string | null = null;
+
+    while (!userFullName) {
+      const readline = require("readline").createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      userFullName = (await new Promise(resolve => {
+        readline.question(
+          "Please enter your full name (ie: John Doe): ",
+          (answer: string) => {
+            readline.close();
+            resolve(answer.trim());
+          }
+        );
+      })) as string;
+
+      if (!userFullName || userFullName.length === 0) {
+        console.error("Error: Your full name cannot be empty.");
+        userFullName = null;
+        continue;
+      }
+    }
+
+    return userFullName;
+  } catch (error: any) {
+    console.error("Error obtaining user full name:", error.message);
     process.exit(1);
   }
 }

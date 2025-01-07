@@ -46,86 +46,34 @@ To run this project, you need to set up environment variables. Follow these step
 Execute the following SQL commands in your Supabase SQL editor to create the necessary tables, set up security policies, and create functions:
 
 ```
--- Create table to store user logs
-CREATE TABLE IF NOT EXISTS
-  public.user_logs (
+-- Drop existing objects
+DROP TABLE IF EXISTS public.security_reports;
+DROP TABLE IF EXISTS public.user_logs;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user();
+
+-- Create security reports table
+CREATE TABLE IF NOT EXISTS public.security_reports (
     id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    user_id UUID NOT NULL,
-    email TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-  );
-
--- Enable RLS on user_logs table
-ALTER TABLE public.user_logs ENABLE ROW LEVEL SECURITY;
-
--- Create a policy for user_logs (adjust according to your needs)
-CREATE POLICY "Users can view their own logs" ON public.user_logs FOR
-SELECT
-  USING (auth.uid () = user_id);
-
--- Create a function to log new users
-CREATE
-OR REPLACE FUNCTION public.log_new_user (user_id UUID, email TEXT) RETURNS VOID AS $$
-BEGIN
-    INSERT INTO public.user_logs (user_id, email)
-    VALUES (user_id, email);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create a trigger on auth.users that calls the log_new_user function
-CREATE
-OR REPLACE FUNCTION public.trigger_log_new_user () RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM public.log_new_user(NEW.id, NEW.email);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER log_new_user_trigger
-AFTER INSERT ON auth.users FOR EACH ROW
-EXECUTE FUNCTION public.trigger_log_new_user ();
-
--- Create table to store security reports
-CREATE TABLE IF NOT EXISTS
-  public.security_reports (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    report_id UUID NOT NULL,
-    user_id UUID NOT NULL,
-    report_details TEXT NOT NULL,
+    device_id TEXT NOT NULL UNIQUE,
+    user_email TEXT NOT NULL,
+    user_full_name TEXT NOT NULL,
+    disk_encrypted BOOLEAN NOT NULL,
+    encryption_type TEXT,
+    antivirus_detected BOOLEAN NOT NULL,
+    antivirus_name TEXT,
+    screen_lock_active BOOLEAN NOT NULL,
+    screen_lock_time TEXT,
     operating_system TEXT,
     os_version TEXT,
+    last_check TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-  );
+);
 
--- Enable RLS on security_reports table
-ALTER TABLE public.security_reports ENABLE ROW LEVEL SECURITY;
-
--- Create a policy for security_reports (adjust according to your needs)
-CREATE POLICY "Users can view their own security reports" ON public.security_reports FOR
-SELECT
-  USING (auth.uid () = user_id);
-
--- Create a function to log new security reports
-CREATE
-OR REPLACE FUNCTION public.log_new_security_report (report_id UUID, user_id UUID, report_details TEXT,  operating_system TEXT, os_version TEXT) RETURNS VOID AS $$
-BEGIN
-    INSERT INTO public.security_reports (report_id, user_id, report_details, operating_system, os_version)
-    VALUES (report_id, user_id, report_details, operating_system, os_version);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create a trigger on security_reports that calls the log_new_security_report function
-CREATE
-OR REPLACE FUNCTION public.trigger_log_new_security_report () RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM public.log_new_security_report(NEW.report_id, NEW.user_id, NEW.report_details, NEW.operating_system, NEW.os_version);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER log_new_security_report_trigger
-AFTER INSERT ON public.security_reports FOR EACH ROW
-EXECUTE FUNCTION public.trigger_log_new_security_report ();
+-- Add constraint to security_reports
+ALTER TABLE public.security_reports
+    ADD CONSTRAINT unique_report_device
+    UNIQUE (user_email, device_id);
 ```
 
 ## Usage
