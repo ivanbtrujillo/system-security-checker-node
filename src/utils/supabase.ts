@@ -25,9 +25,9 @@ function getSupabaseClient() {
 export const supabaseClient = getSupabaseClient();
 
 export async function sendReportToSupabase(
-  deviceId: string,
   userEmail: string,
   userFullName: string,
+  deviceId: string,
   report: {
     disk_encrypted: boolean;
     encryption_type: string | null;
