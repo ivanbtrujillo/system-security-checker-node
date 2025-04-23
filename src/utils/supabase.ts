@@ -53,19 +53,19 @@ export async function sendReportToSupabase(
       );
 
     if (error) throw error;
-    console.log("Report sent to Supabase successfully.");
+    return true;
   } catch (error: any) {
     console.error(
-      chalk.red("Error sending report to Supabase:"),
+      chalk.red("\nError sending report to Supabase:"),
       error.message
     );
     if (error.details) {
-      console.error(chalk.yellow("Error details:"), error.details);
+      console.error(chalk.yellow("\nError details:"), error.details);
     }
     if (error.hint) {
-      console.error(chalk.yellow("Hint:"), error.hint);
+      console.error(chalk.yellow("\nHint:"), error.hint);
     }
-    throw error;
+    return false;
   }
 }
 

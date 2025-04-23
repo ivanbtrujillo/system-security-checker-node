@@ -79,8 +79,15 @@ async function main() {
 
       if (shouldSendReport) {
         const sendingSpinner = ora("Sending report to server...").start();
-        await sendReportToSupabase(userEmail, userFullName, deviceId, report);
-        sendingSpinner.succeed("Report sent successfully!");
+        const success = await sendReportToSupabase(
+          userEmail,
+          userFullName,
+          deviceId,
+          report
+        );
+        if (success) sendingSpinner.succeed("Report sent successfully!");
+        else
+          sendingSpinner.fail("Failed to send report. Please try again later.");
       } else {
         console.log(
           chalk.yellow(
