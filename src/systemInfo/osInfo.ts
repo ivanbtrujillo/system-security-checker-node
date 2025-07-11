@@ -43,7 +43,7 @@ export function getDeviceSerial() {
         .trim();
       break;
     case "win32":
-      serial = execSync("wmic os get serialnumber")
+      serial = execSync("wmic bios get serialnumber")
         .toString()
         .split("\n")[1]
         .trim();
