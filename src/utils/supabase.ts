@@ -74,6 +74,11 @@ export async function getUserEmail(dryRun: boolean) {
     return "local-dry-run";
   }
 
+  let userEmail: string | null = process.env.USER_EMAIL || null;
+  if (userEmail) {
+    return userEmail.trim();
+  }
+
   try {
     const { email } = await inquirer.prompt([
       {
@@ -102,6 +107,11 @@ export async function getUserEmail(dryRun: boolean) {
 export async function getUserFullName(dryRun: boolean) {
   if (dryRun) {
     return "local-dry-run";
+  }
+
+  let userFullName: string | null = process.env.USER_FULL_NAME || null;
+  if (userFullName) {
+    return userFullName.trim();
   }
 
   try {
