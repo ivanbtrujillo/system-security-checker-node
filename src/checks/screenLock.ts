@@ -43,7 +43,7 @@ function checkMacOsScreenLock() {
 
     if (match && match[1]) {
       const screenLockMinutesDelay = parseInt(match[1], 10) / 60;
-      return (maxTimeoutMinutes + screenLockMinutesDelay) || null;
+      return maxTimeoutMinutes + screenLockMinutesDelay || null;
     }
   } catch (error) {
     console.error("Error checking screen lock status:", error);
@@ -52,42 +52,29 @@ function checkMacOsScreenLock() {
   return null;
 }
 
-function getPreferredLanguage() {
-  return execPowershell("Get-SystemPreferredUILanguage").split("-")[0].toLowerCase();
-}
-
-function getPowerConfigCommand  (pattern: string) {
-  return `powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern "${pattern}"`;
-}
-
 function checkWindowsScreenLock() {
-  let timeout;
+  const powerSettings = execPowershell(`
+      $lang = (Get-WinUserLanguageList).LocalizedName.Split(' ')[0].ToLower();
+      $acPattern = if ($lang -eq 'spanish') { 'Índice de configuración de corriente alterna actual' } else { 'Current AC Power Setting Index' };
+      $dcPattern = if ($lang -eq 'spanish') { 'Índice de configuración de corriente continua actual' } else { 'Current DC Power Setting Index' };
 
-  const preferredLanguage = getPreferredLanguage();
-  const acPowerSettings = preferredLanguage === 'es' ? "Índice de configuración de corriente alterna actual" : "Current AC Power Setting Index";
-  const dcPowerSettings = preferredLanguage === 'es' ? "Índice de configuración de corriente continua actual" : "Current DC Power Setting Index";
+      $acSettings = (powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern $acPattern).Line.Split(':')[1].Trim();
+      $dcSettings = (powercfg -q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE | Select-String -Pattern $dcPattern).Line.Split(':')[1].Trim();
+      $hasBattery = [bool](Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue);
 
-  const pluggedIn = execPowershell(getPowerConfigCommand(acPowerSettings));
-  const pluggedInTimeout = pluggedIn.split(":")[1].trim();
+      [PSCustomObject]@{
+        AC = $acSettings;
+        DC = $dcSettings;
+        HasBattery = $hasBattery
+      } | ConvertTo-Json
+    `);
 
-  const haveBattery = execPowershell("Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue") !== "";
-  if (haveBattery) {
-    const onBattery = execPowershell(getPowerConfigCommand(dcPowerSettings));
+  const settings = JSON.parse(powerSettings);
+  const timeout = settings.HasBattery
+    ? Math.max(parseInt(settings.AC, 16), parseInt(settings.DC, 16))
+    : parseInt(settings.AC, 16);
 
-    const onBatteryTimeout = onBattery.split(":")[1].trim();
-
-    timeout = Math.max(
-      parseInt(onBatteryTimeout, 16),
-      parseInt(pluggedInTimeout, 16)
-    );
-  } else {
-    timeout = parseInt(pluggedInTimeout, 16);
-  }
-
-  if (timeout === 0) {
-    return null;
-  }
-  return timeout / 60;
+  return timeout === 0 ? null : timeout / 60;
 }
 
 function checkLinuxScreenLock() {
@@ -126,7 +113,9 @@ function checkLinuxScreenLock() {
     )
       .toString()
       .split(" ")?.[1];
-    return (parseInt(idleDelaySeconds, 10) / 60) + (parseInt(lockDelaySeconds, 10) / 60);
+    return (
+      parseInt(idleDelaySeconds, 10) / 60 + parseInt(lockDelaySeconds, 10) / 60
+    );
   }
   return null;
 }
