@@ -35,9 +35,12 @@ To run this project, you need to set up environment variables. Follow these step
    ```
    SUPABASE_URL=your_supabase_url
    SUPABASE_ANON_KEY=your_supabase_anon_key
+   USER_EMAIL=my.name@myemail.com # opptinal
+   USER_FULL_NAME=My Full Name # optional
    ```
 
    Replace `your_supabase_url` and `your_supabase_anon_key` with your actual Supabase credentials.
+   Replace `my.name@myemail.com` and `My Full Name` with your actual Email and Full Name
 
 3. Make sure the `.env` file is included in your `.gitignore` to avoid uploading sensitive information to your repository.
 
