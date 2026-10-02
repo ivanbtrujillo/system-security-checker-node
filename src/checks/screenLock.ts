@@ -8,8 +8,35 @@ const getDisplaySleep = (mode: "Battery Power" | "AC Power") => {
   )
     .toString()
     .trim();
-  return parseInt(output);
+  /* Desktop Macs have no "Battery Power" section, so the awk filter prints
+   * nothing; report that source as absent instead of NaN, which would
+   * poison Math.max below. */
+  const minutes = parseInt(output, 10);
+  return Number.isNaN(minutes) ? null : minutes;
 };
+
+const getScreenSaverIdleMinutes = (): number | null => {
+  try {
+    const output = execSync(
+      "defaults -currentHost read com.apple.screensaver idleTime",
+      { stdio: ["ignore", "pipe", "pipe"] }
+    )
+      .toString()
+      .trim();
+    const seconds = parseInt(output, 10);
+    return Number.isNaN(seconds) ? null : seconds / 60;
+  } catch (error: any) {
+    /* The key can be absent on newer macOS. We don't guess the OS default
+     * for it; the source is reported as absent and display sleep still
+     * bounds the result. Any other failure is a real error and must reach
+     * the caller rather than be mistaken for "not set". */
+    if (String(error?.stderr).includes("does not exist")) {
+      return null;
+    }
+    throw error;
+  }
+};
+
 function checkMacOsScreenLock() {
   try {
     const output = execSync("sysadminctl -screenLock status 2>&1")
@@ -20,19 +47,16 @@ function checkMacOsScreenLock() {
       return null;
     }
 
-    const screenSaver =
-      parseInt(
-        execSync("defaults -currentHost read com.apple.screensaver idleTime")
-          .toString()
-          .trim()
-      ) / 60;
+    const screenSaver = getScreenSaverIdleMinutes();
     const displaySleepOnBattery = getDisplaySleep("Battery Power");
     const displaySleepOnAC = getDisplaySleep("AC Power");
 
+    // Leading 0 keeps the result finite when every source is absent.
     let maxTimeoutMinutes = Math.max(
-      screenSaver,
-      displaySleepOnAC,
-      displaySleepOnBattery
+      0,
+      ...[screenSaver, displaySleepOnAC, displaySleepOnBattery].filter(
+        (minutes): minutes is number => minutes !== null
+      )
     );
 
     if (output.includes("screenLock delay is immediate")) {
